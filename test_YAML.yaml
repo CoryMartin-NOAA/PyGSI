@@ -1,0 +1,12 @@
+---
+satellite input:
+  path: /scratch1/NCEPDEV/stmp2/Cory.R.Martin/ICs_tmp/v16para/gdas.20200531/00/diag_amsua_metop-a_anl.2020053100.nc4
+  channel: 10
+  qc flag: 1
+  plot type: histogram
+
+conventional input:
+  path:
+  observation id:
+  qc flag:
+  plot type: spatial
