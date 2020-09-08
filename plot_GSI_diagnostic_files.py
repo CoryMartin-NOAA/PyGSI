@@ -1,23 +1,24 @@
-
 import numpy as np
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from scipy import spatial
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import argparse
+import yaml
+from textwrap import wrap
 
-parser = argparse.ArgumentParser(description='Plot O-F histogram and spatial plot with GSI diagnostic files.')          
-parser.add_argument('-f', '--file', type=str,                                                                                                        
-                    help='path to GSI diagnostic file.', required=True)
-parser.add_argument('-o', '--obs', type=int, default=None,                                                                                                        
-                    help='the specific observation code.')
+parser = argparse.ArgumentParser(description='Plot histogram and spatial plot with GSI diagnostic files.')          
+parser.add_argument('-y', '--yaml', type=str,                                                                                                        
+                    help='path to YAML file to run the account.', required=True)
 
 args = parser.parse_args()
 
-nc_file = args.file
-obs_id = args.obs
+YAML = args.yaml
+
+file = open('YAML')
+parsed_yaml_file = yaml.load(file, Loader=yaml.FullLoader)
+
 
 ##################################################################
 
@@ -88,7 +89,7 @@ def get_obs_type(obs_id):
         290: "Non-SUPEROBED Scatterometer Winds over Ocean"
     }
     
-    if (obs_id in d.keys()) == True:	
+    if (obs_id in obs_indicators.keys()) == True:	
         return obs_indicators[obs_id]
     else:
         return str(obs_id)
@@ -157,7 +158,7 @@ def plot_spatial(diff, bounds, meta_data, lons, lats):
     
     plt.figure(figsize=(15,12))
     ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=0))
-    ax.coastlines()
+    ax.add_feature(cfeature.GSHHSFeature(scale='auto'))
     ax.set_extent([-180, 180, -90, 90])
     norm = mcolors.BoundaryNorm(boundaries=bounds, ncolors=256)
     
@@ -188,77 +189,116 @@ def plot_spatial(diff, bounds, meta_data, lons, lats):
 ##################################################################    
 
 
-def main(nc_file, obs_id):
+def main(nc_file):
     
-    var, date, hour, file_type = get_metadata(nc_file)
+    if parsed_yaml_file['conventional input']['path'] != None:
 
-    if obs_id != None:
+        var, date, hour, file_type = get_metadata(nc_file)
+        obs_id = parsed_yaml_file['conventional inpute']['observation id']
 
-        obs_descript = get_obs_type(obs_id)
+        if obs_id != None:
 
-        meta_data = {"Variable": var,
-                     "Date": date,
-                     "Hour": hour,
-                     "File_type": file_type,
-                     "Obs_ID": obs_id,
-                     "Obs_description": obs_descript
-                    }
-    else:
-        meta_data = {"Variable": var,
-                     "Date": date,
-                     "Hour": hour,
-                     "File_type": file_type,
-                     "Obs_ID": "All Obs Types"
-                    }
+            obs_descript = get_obs_type(obs_id)
 
-    ## Read data
-    f = Dataset(nc_file, mode='r')
+            meta_data = {"Variable": var,
+                         "Date": date,
+                         "Hour": hour,
+                         "File_type": file_type,
+                         "Obs_ID": obs_id,
+                         "Obs_description": obs_descript
+                        }
+        else:
+            meta_data = {"Variable": var,
+                         "Date": date,
+                         "Hour": hour,
+                         "File_type": file_type,
+                         "Obs_ID": "All Obs Types",
+                         "Obs_description": "All Obs Types"
+                        }
 
-    lons = f.variables['Longitude'][:]
-    lats = f.variables['Latitude'][:]
-    if meta_data['File_type'] == 'ges':
-        diff  = f.variables['Obs_Minus_Forecast_adjusted'][:]
-#     if meta_data['File_type'] == 'anl':
-#         diff  = f.variables['????'][:]
-    o_type = f.variables['Observation_Type'][:]
-    f.close()
+        ## Address uv data    
+        if meta_data['Variable'] == 'uv':
+            ## Read data
+            f = Dataset(nc_file, mode='r')
+
+            lons = f.variables['Longitude'][:]
+            lats = f.variables['Latitude'][:]
+            u_diff = f.variables['u_Obs_Minus_Forecast_adjusted'][:]
+            v_diff = f.variables['v_Obs_Minus_Forecast_adjusted'][:]
+            o_type = f.variables['Observation_Type'][:]
+            f.close()
+
+            ## Find data with indicated observation type
+            if obs_id != None:    
+                idx = np.where(o_type == obs_id)
+                u_diff = u_diff[idx]
+                v_diff = v_diff[idx]
+
+                lons = lons[idx]
+                lats = lats[idx]
+
+                if u_diff.size == 0 or v_diff == 0:
+                    print("No observations for %s from Observation ID: %s" % (var, obs_id))
+
+            bins = np.arange(-20,20.1,0.1)
+            plot_histogram(u_diff, bins, meta_data) #will need to fix titles
+            plot_histogram(v_diff, bins, meta_data) #will need to fix titles
+
+            bounds = np.arange(-10,12.5,2.5)
+            plot_spatial(u_diff, bounds, meta_data, lons, lats)
+            plot_spatial(v_diff, bounds, meta_data, lons, lats)
 
 
-    ## Find data with indicated observation type
-    if obs_id != None:    
-        idx = np.where(o_type == obs_id)
-        diff = diff[idx]
+        else:    
+            ## Read data
+            f = Dataset(nc_file, mode='r')
 
-        lons = lons[idx]
-        lats = lats[idx]
+            lons = f.variables['Longitude'][:]
+            lats = f.variables['Latitude'][:]
+            diff  = f.variables['Obs_Minus_Forecast_adjusted'][:]
+            qc_flags = f.variables['QC_Flag'][:]
+            o_type = f.variables['Observation_Type'][:]
+            f.close()
 
-        if diff.size == 0:
-            print("No observations for %s from Observation ID: %s" % (var, obs_id))
 
-    # Temperature
-    if var == 't':
-        bins = np.arange(-10,10.1,0.1)
-        plot_histogram(diff, bins, meta_data)
+            ## Find data with indicated observation type
+            if obs_id != None:    
+                idx = np.where(o_type == obs_id)
+                diff = diff[idx]
 
-        bounds = np.arange(-10,12.5,2.5)
-        plot_spatial(diff, bounds, meta_data, lons, lats)
+                lons = lons[idx]
+                lats = lats[idx]
 
-    # Specific Humidity
-    if var == 'q':
-        bins = np.arange(-0.01,0.0101,0.0001)
-        plot_histogram(diff, bins, meta_data)
+                if diff.size == 0:
+                    print("No observations for %s from Observation ID: %s" % (var, obs_id))
 
-        bounds = np.arange(-0.01,0.0125,0.0025)
-        plot_spatial(diff, bounds, meta_data, lons, lats)
+            # Temperature
+            if var == 't':
+                bins = np.arange(-10,10.1,0.1)
+                plot_histogram(diff, bins, meta_data)
 
-    # Pressure
-    if var == 'ps':
-        bins = np.arange(-500,510,10)
-        plot_histogram(diff, bins, meta_data)
+                bounds = np.arange(-10,12.5,2.5)
+                plot_spatial(diff, bounds, meta_data, lons, lats)
 
-        bounds = np.arange(-500,510,100)
-        plot_spatial(diff, bounds, meta_data, lons, lats)
+            # Specific Humidity
+            if var == 'q':
+                bins = np.arange(-0.01,0.0101,0.0001)
+                plot_histogram(diff, bins, meta_data)
+
+                bounds = np.arange(-0.01,0.0125,0.0025)
+                plot_spatial(diff, bounds, meta_data, lons, lats)
+
+            # Pressure
+            if var == 'ps':
+                bins = np.arange(-500,510,10)
+                plot_histogram(diff, bins, meta_data)
+
+                bounds = np.arange(-500,510,100)
+                plot_spatial(diff, bounds, meta_data, lons, lats)
+                
         
     return None
 
-main(nc_file, obs_id)
+
+main(parsed_yaml_file)
+
