@@ -295,6 +295,38 @@ def main(nc_file):
 
                 bounds = np.arange(-500,510,100)
                 plot_spatial(diff, bounds, meta_data, lons, lats)
+            
+            # SST
+            if var == 'sst':
+                bins = np.arange(-5,5.1,0.1)
+                plot_histogram(diff, bins, meta_data)
+
+                bins = np.arange(-5,6,1)
+                plot_spatial(diff, bounds, meta_data, lons, lats)
+
+            # Precipitable Water
+            if var == 'pw':
+                bins = np.arange(-10,10.5,0.5)
+                plot_histogram(diff, bins, meta_data)
+
+                bins = np.arange(-10,12,2)
+                plot_spatial(diff, bounds, meta_data, lons, lats)
+
+            # GPS
+            if var == 'gps':
+                bins = np.arange(-0.005,0.0051,0.0001)
+                plot_histogram(diff, bins, meta_data)
+
+                bins = np.arange(-0.005,0.0051,0.001)
+                plot_spatial(diff, bounds, meta_data, lons, lats)
+
+            # Tropical Cyclone Pressure
+            if var == 'tcp':
+                bins = np.arange(-5,5.1,0.1)
+                plot_histogram(diff, bins, meta_data)
+
+                bins = np.arange(-5,6,1)
+                plot_spatial(diff, bounds, meta_data, lons, lats)
                 
         
     return None
