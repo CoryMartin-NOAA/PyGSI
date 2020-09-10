@@ -16,8 +16,7 @@ args = parser.parse_args()
 
 YAML = args.yaml
 
-file = open('YAML')
-parsed_yaml_file = yaml.load(file, Loader=yaml.FullLoader)
+parsed_yaml_file = yaml.load(YAML, Loader=yaml.FullLoader)
 
 
 ##################################################################
@@ -31,14 +30,26 @@ def get_metadata(data_path):
         hour: hour HH (zulu)
         file_type: either ges or anl
     """
-    split = data_path.split('/')[-1].split('.')
-    var = split[0].split('_')[2]
-    date = split[1].split('_')[0]
-    hour = date[-2:]
-    file_type = split[0].split('_')[-1]
-    
-    return var, date, hour, file_type
+    if data_path.split('/')[-1].split('.')[0].split('_')[1] == 'conv':
+        
+        split = data_path.split('/')[-1].split('.')
+        var = split[0].split('_')[2]
+        date = split[1].split('_')[0]
+        hour = date[-2:]
+        file_type = split[0].split('_')[-1]
 
+        return var, date, hour, file_type
+    
+    else:
+        split = data_path.split('/')[-1].split('.')
+        sensor = split[0].split('_')[1]
+        satellite = split[0].split('_')[2]
+        date = split[1].split('_')[0]
+        hour = date[-2:]
+        file_type = split[0].split('_')[-1]
+
+        return sensor, satellite, date, hour, file_type
+    
 def get_obs_type(obs_id):
     
     obs_indicators = {
@@ -99,8 +110,10 @@ def calculate_stats(diff):
     var_list = [(x-mean)**2 for x in diff]
     variance = np.sum(var_list)/(len(var_list)-1)
     std = np.sqrt(variance)
+    mx = max(diff)
+    mn = min(diff)
     
-    return mean, std
+    return mean, std, mx, mn
 
 def plot_labels(meta_data):
     
@@ -127,34 +140,34 @@ def plot_labels(meta_data):
 def plot_histogram(diff, bins, meta_data):
     # get count and calculate mean and standard deviation of diff
     n = len(diff) 
-    mean, std = calculate_stats(diff)
+    mean, std, mx, mn = calculate_stats(diff)
     
     fig = plt.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
     plt.hist(diff, bins=bins)
-    if meta_data['Variable'] == 'q':
-        t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,6),np.round(mean,6)))
-        ax.text(0.75,.8, t, fontsize=14, transform=ax.transAxes)
-    else:
-        t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,3),np.round(mean,3)))
-        ax.text(0.75,.8, t, fontsize=14, transform=ax.transAxes)
+#     if meta_data['Variable'] == 'q':
+#         t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,6),np.round(mean,6)))
+#         ax.text(0.75,.8, t, fontsize=14, transform=ax.transAxes)
+#     else:
+    t = ('n: %s\nstd: %s\nmean: %s\nmax: %s\nmin: %s' % (n,np.round(std,3),np.round(mean,3), np.round(mx,3), np.round(mn,3)))
+    ax.text(0.75,.7, t, fontsize=14, transform=ax.transAxes)
     
-    labels = plot_labels(meta_data)
+#     labels = plot_labels(meta_data)
         
-    plt.xlabel(labels['x'])
-    plt.ylabel('Count')
+#     plt.xlabel(labels['x'])
+#     plt.ylabel('Count')
     
-    title_split = labels['lt'].split('\n')
-    plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 40))), loc='left', fontsize=14)
-    plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
-    plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
+#     title_split = labels['lt'].split('\n')
+#     plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 40))), loc='left', fontsize=14)
+#     plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
+#     plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
     
     return 0
 
 def plot_spatial(diff, bounds, meta_data, lons, lats):
     
     n = len(diff) 
-    mean, std = calculate_stats(diff)
+    mean, std, mx, mn = calculate_stats(diff)
     
     plt.figure(figsize=(15,12))
     ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=0))
@@ -166,22 +179,22 @@ def plot_spatial(diff, bounds, meta_data, lons, lats):
                 norm=norm, cmap='bwr', #edgecolors='gray', linewidth=0.25,
                 transform=ccrs.PlateCarree())
     
-    if meta_data['Variable'] == 'q':
-        t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,6),np.round(mean,6)))
-        ax.text(-175, -70, t, fontsize=16, transform=ccrs.PlateCarree())
-    else:
-        t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,3),np.round(mean,3)))
-        ax.text(-175, -70, t, fontsize=16, transform=ccrs.PlateCarree())
+#     if meta_data['Variable'] == 'q':
+#         t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,6),np.round(mean,6)))
+#         ax.text(-175, -70, t, fontsize=16, transform=ccrs.PlateCarree())
+#     else:
+    t = ('n: %s\nstd: %s\nmean: %s\nmax: %s\nmin: %s' % (n,np.round(std,3),np.round(mean,3), np.round(mx,3), np.round(mn,3)))
+    ax.text(-175, -70, t, fontsize=16, transform=ccrs.PlateCarree())
 
-    labels = plot_labels(meta_data)
+#     labels = plot_labels(meta_data)
     
     cb = plt.colorbar(cs, shrink=0.5, pad=.04, extend='both')
-    cb.set_label(labels['x'], fontsize=12)
+#     cb.set_label(labels['x'], fontsize=12)
     
-    title_split = labels['lt'].split('\n')
-    plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 70))), loc='left', fontsize=14)
-    plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
-    plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
+#     title_split = labels['lt'].split('\n')
+#     plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 70))), loc='left', fontsize=14)
+#     plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
+#     plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
     
     return 0
     
@@ -192,8 +205,10 @@ def plot_spatial(diff, bounds, meta_data, lons, lats):
 def main(nc_file):
     
     if parsed_yaml_file['conventional input']['path'] != None:
-
+        
+        nc_file = parsed_yaml_file['conventional input']['path']
         var, date, hour, file_type = get_metadata(nc_file)
+
         obs_id = parsed_yaml_file['conventional inpute']['observation id']
 
         if obs_id != None:
@@ -295,13 +310,13 @@ def main(nc_file):
 
                 bounds = np.arange(-500,510,100)
                 plot_spatial(diff, bounds, meta_data, lons, lats)
-            
-            # SST
+                
+                # SST
             if var == 'sst':
                 bins = np.arange(-5,5.1,0.1)
                 plot_histogram(diff, bins, meta_data)
 
-                bins = np.arange(-5,6,1)
+                bounds = np.arange(-5,6,1)
                 plot_spatial(diff, bounds, meta_data, lons, lats)
 
             # Precipitable Water
@@ -309,7 +324,7 @@ def main(nc_file):
                 bins = np.arange(-10,10.5,0.5)
                 plot_histogram(diff, bins, meta_data)
 
-                bins = np.arange(-10,12,2)
+                bounds = np.arange(-10,12,2)
                 plot_spatial(diff, bounds, meta_data, lons, lats)
 
             # GPS
@@ -317,7 +332,7 @@ def main(nc_file):
                 bins = np.arange(-0.005,0.0051,0.0001)
                 plot_histogram(diff, bins, meta_data)
 
-                bins = np.arange(-0.005,0.0051,0.001)
+                bounds = np.arange(-0.005,0.0051,0.001)
                 plot_spatial(diff, bounds, meta_data, lons, lats)
 
             # Tropical Cyclone Pressure
@@ -325,8 +340,75 @@ def main(nc_file):
                 bins = np.arange(-5,5.1,0.1)
                 plot_histogram(diff, bins, meta_data)
 
-                bins = np.arange(-5,6,1)
+                bounds = np.arange(-5,6,1)
                 plot_spatial(diff, bounds, meta_data, lons, lats)
+                
+                
+                
+    if parsed_yaml_file['satellite input']['path'] != None:
+    
+        nc_file = parsed_yaml_file['satellite input']['path']
+        sensor, satellite, date, hour, file_type = get_metadata(nc_file)
+        
+        meta_data = {"Satellite": satellite,
+                     "Sensor": sensor,
+                     "Date": date,
+                     "Hour": hour,
+                     "File_type": file_type,
+                    }
+
+        # Read Data
+        f = Dataset(nc_file, mode='r')
+        lons = f.variables['Longitude'][:]
+        lats = f.variables['Latitude'][:]
+        qc = f.variables['QC_Flag'][:]
+        channel_idx = f.variables['Channel_Index'][:]
+        diff  = f.variables['Obs_Minus_Forecast_adjusted'][:]
+        f.close()
+
+        VALID_QC_FLAGS = list()
+
+        # Checks to see if qc flags included in YAML file are actually in data set.
+        # If they are not, prompt user which flags are excluded 
+        for i in parsed_yaml_file['satellite input']['qc flag']:
+            if (i in qc) == True:
+                VALID_QC_FLAGS.append(i)
+            else:
+                print('QC flag %s is not in data set.' % i)
+
+
+        # Finds indexes where valid QC flags and channels are in data
+        flag_i = np.isin(qc, VALID_QC_FLAGS)
+        chan_i = np.isin(channel_idx, parsed_yaml_file['satellite input']['channel'])
+
+        # Address each scenario:
+        # Valid flags and channels included in YAML
+        if sum(flag_i) > 0 and sum(chan_i) > 0:
+            idx = np.where((chan_i) & (flag_i))
+
+        # Valid flags included in YAML, but no channels
+        elif sum(flag_i) > 0 and sum(chan_i) == 0:
+            idx = np.where(flag_i)
+
+        # Channels included in YAML, but no valid QC flags
+        elif sum(flag_i) == 0 and sum(chan_i) > 0:
+            idx = np.where(chan_i)
+
+        # No channels or valid QC flags included
+        else:
+            idx = np.where(diff)
+
+
+        # Apply indexes to diff, lons, and lats for appropariate indexes
+        diff = diff[idx]
+        lons = lons[idx]
+        lats = lats[idx]
+        
+        bins = np.arange(-20,20.25,0.25)
+        plot_histogram(diff, bins, meta_data)
+
+        bounds = np.arange(-20,22.5,2.5)
+        plot_spatial(diff, bounds, meta_data, lons, lats)
                 
         
     return None
