@@ -202,7 +202,7 @@ def plot_spatial(diff, bounds, meta_data, lons, lats):
 ##################################################################    
 
 
-def main(nc_file):
+def main(parsed_yaml_file):
     
     if parsed_yaml_file['conventional input']['path'] != None:
         
