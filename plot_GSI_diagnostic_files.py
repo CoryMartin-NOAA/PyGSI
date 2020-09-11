@@ -117,24 +117,40 @@ def calculate_stats(diff):
 
 def plot_labels(meta_data):
     
-    if meta_data['File_type'] == 'ges':
-        xlabel = 'O - F'
-        left_title = 'O-F: %s \n%s' % (meta_data['Variable'], meta_data['Obs_description'])
-        right_title = '%s' % meta_data['Date']
-        save_file = '%s_%s_%s_O_minus_F_spatial.png' % (meta_data['Date'], meta_data['Variable'], meta_data['Obs_ID'])
+    if list(meta_data.keys())[0] == 'Variable':
+    
+        if meta_data['File_type'] == 'ges':
+            xlabel = 'O - F'
+            left_title = 'O-F: %s \n%s' % (meta_data['Variable'], meta_data['Obs_description'])
+            right_title = '%s' % meta_data['Date']
+            save_file = '%s_%s_%s_O_minus_F_spatial.png' % (meta_data['Date'], meta_data['Variable'], meta_data['Obs_ID'])
+
+        if meta_data['File_type'] == 'anl':
+            xlabel = 'O - A'
+            left_title = 'O-A: %s \n%s' % (meta_data['Variable'], meta_data['Obs_description'])
+            right_title = '%s' % meta_data['Date']
+            save_file = '%s_%s_%s_O_minus_A_spatial.png' % (meta_data['Date'], meta_data['Variable'], meta_data['Obs_ID'])
         
-    if meta_data['File_type'] == 'anl':
-        xlabel = 'O - A'
-        left_title = 'O-A: %s \n%s' % (meta_data['Variable'], meta_data['Obs_description'])
-        right_title = '%s' % meta_data['Date']
-        save_file = '%s_%s_%s_O_minus_A_spatial.png' % (meta_data['Date'], meta_data['Variable'], meta_data['Obs_ID'])
-        
+    if list(meta_data.keys())[0] == 'Satellite':
+        if meta_data['File_type'] == 'ges':
+            xlabel = 'O - F'
+            left_title = 'O-F: %s \n%s' % (meta_data['Sensor'], meta_data['Satellite'])
+            right_title = '%s' % meta_data['Date']
+            save_file = '%s_%s_%s_O_minus_F_spatial.png' % (meta_data['Date'], meta_data['Sensor'], meta_data['Satellite'])
+            
+        if meta_data['File_type'] == 'anl':
+            xlabel = 'O - A'
+            left_title = 'O-A: %s \n%s' % (meta_data['Sensor'], meta_data['Satellite'])
+            right_title = '%s' % meta_data['Date']
+            save_file = '%s_%s_%s_O_minus_A_spatial.png' % (meta_data['Date'], meta_data['Sensor'], meta_data['Satellite'])
+            
     labels = {'x': xlabel,
               'lt': left_title,
               'rt': right_title,
               'save': save_file
              }
-    
+            
+            
     return labels
 
 def plot_histogram(diff, bins, meta_data):
@@ -145,21 +161,23 @@ def plot_histogram(diff, bins, meta_data):
     fig = plt.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
     plt.hist(diff, bins=bins)
-#     if meta_data['Variable'] == 'q':
-#         t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,6),np.round(mean,6)))
-#         ax.text(0.75,.8, t, fontsize=14, transform=ax.transAxes)
-#     else:
-    t = ('n: %s\nstd: %s\nmean: %s\nmax: %s\nmin: %s' % (n,np.round(std,3),np.round(mean,3), np.round(mx,3), np.round(mn,3)))
-    ax.text(0.75,.7, t, fontsize=14, transform=ax.transAxes)
     
-#     labels = plot_labels(meta_data)
+    if list(meta_data.keys())[0] == 'Variable':
+        if meta_data['Variable'] == 'q':
+            t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,6),np.round(mean,6)))
+            ax.text(0.75,.8, t, fontsize=14, transform=ax.transAxes)
+    else:
+        t = ('n: %s\nstd: %s\nmean: %s\nmax: %s\nmin: %s' % (n,np.round(std,3),np.round(mean,3), np.round(mx,3), np.round(mn,3)))
+        ax.text(0.75,.7, t, fontsize=14, transform=ax.transAxes)
+    
+    labels = plot_labels(meta_data)
         
-#     plt.xlabel(labels['x'])
-#     plt.ylabel('Count')
+    plt.xlabel(labels['x'])
+    plt.ylabel('Count')
     
-#     title_split = labels['lt'].split('\n')
-#     plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 40))), loc='left', fontsize=14)
-#     plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
+    title_split = labels['lt'].split('\n')
+    plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 40))), loc='left', fontsize=14)
+    plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
 #     plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
     
     return 0
@@ -179,21 +197,22 @@ def plot_spatial(diff, bounds, meta_data, lons, lats):
                 norm=norm, cmap='bwr', #edgecolors='gray', linewidth=0.25,
                 transform=ccrs.PlateCarree())
     
-#     if meta_data['Variable'] == 'q':
-#         t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,6),np.round(mean,6)))
-#         ax.text(-175, -70, t, fontsize=16, transform=ccrs.PlateCarree())
-#     else:
-    t = ('n: %s\nstd: %s\nmean: %s\nmax: %s\nmin: %s' % (n,np.round(std,3),np.round(mean,3), np.round(mx,3), np.round(mn,3)))
-    ax.text(-175, -70, t, fontsize=16, transform=ccrs.PlateCarree())
+    if list(meta_data.keys())[0] == 'Variable':
+        if meta_data['Variable'] == 'q':
+            t = ('n: %s\nstd: %s\nmean: %s' % (n,np.round(std,6),np.round(mean,6)))
+            ax.text(-175, -70, t, fontsize=16, transform=ccrs.PlateCarree())
+    else:
+        t = ('n: %s\nstd: %s\nmean: %s\nmax: %s\nmin: %s' % (n,np.round(std,3),np.round(mean,3), np.round(mx,3), np.round(mn,3)))
+        ax.text(-175, -70, t, fontsize=16, transform=ccrs.PlateCarree())
 
-#     labels = plot_labels(meta_data)
+    labels = plot_labels(meta_data)
     
     cb = plt.colorbar(cs, shrink=0.5, pad=.04, extend='both')
-#     cb.set_label(labels['x'], fontsize=12)
+    cb.set_label(labels['x'], fontsize=12)
     
-#     title_split = labels['lt'].split('\n')
-#     plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 70))), loc='left', fontsize=14)
-#     plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
+    title_split = labels['lt'].split('\n')
+    plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 70))), loc='left', fontsize=14)
+    plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
 #     plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
     
     return 0
