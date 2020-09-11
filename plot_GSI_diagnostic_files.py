@@ -178,7 +178,7 @@ def plot_histogram(diff, bins, meta_data):
     title_split = labels['lt'].split('\n')
     plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 40))), loc='left', fontsize=14)
     plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
-#     plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
+    plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
     
     return 0
 
@@ -213,7 +213,7 @@ def plot_spatial(diff, bounds, meta_data, lons, lats):
     title_split = labels['lt'].split('\n')
     plt.title("%s\n%s" % (title_split[0], '\n'.join(wrap(title_split[-1], 70))), loc='left', fontsize=14)
     plt.title(labels['rt'], loc='right', fontweight='semibold', fontsize=14)
-#     plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
+    plt.savefig(labels['save'], bbox_inches='tight', pad_inches=0.1)
     
     return 0
     
